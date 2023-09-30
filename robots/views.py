@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
+
 import openpyxl
 from django.db.models import Count
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
 # Create your views here.
@@ -11,18 +13,27 @@ from robots.models import Robot
 
 class GenerateExcelReportView(View):
     def get(self, request):
-        # Создаем новую книгу Excel
-        workbook = openpyxl.Workbook()
+        # Определите дату начала и конца последней недели
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=7)
 
         # Получаем данные о количестве роботов из базы данных
-        robot_models = Robot.objects.values('model').distinct()
+        robot_models = Robot.objects.filter(created__gte=start_date, created__lte=end_date).values('model').distinct()
+
+        # Проверьте, есть ли данные за последнюю неделю
+        if not robot_models:
+            error_message = 'Данные за последнюю неделю не найдены.'
+            return JsonResponse({'error': error_message}, status=404)
+
+        # Создаем новую книгу Excel
+        workbook = openpyxl.Workbook()
 
         # Создаем страницу (лист) для каждой модели
         for robot_model in robot_models:
             model_name = robot_model['model']
             worksheet = workbook.create_sheet(title=model_name)  # Создаем лист с именем модели
             self.add_headers(worksheet)  # Добавляем заголовки
-            robot_data = self.get_robot_summary_data(model_name)  # Получаем данные для текущей модели
+            robot_data = self.get_robot_summary_data(model_name, start_date, end_date)  # Получаем данные для текущей модели
             self.fill_worksheet(worksheet, robot_data)  # Заполняем лист данными
 
         # Удаляем лист "Sheet", который создается автоматически, если не удален
@@ -38,9 +49,9 @@ class GenerateExcelReportView(View):
         # Добавляем заголовки в первую строку
         worksheet.append(['Модель', 'Версия', 'Количество за неделю'])
 
-    def get_robot_summary_data(self, model_name):
+    def get_robot_summary_data(self, model_name, start_date, end_date):
         # Получаем суммарные показатели количества роботов для данной модели
-        return Robot.objects.filter(model=model_name).values('model', 'version').annotate(count=Count('serial'))
+        return Robot.objects.filter(model=model_name, created__gte=start_date, created__lte=end_date).values('model', 'version').annotate(count=Count('serial'))
 
     def fill_worksheet(self, worksheet, data):
         # Заполняем лист данными из базы данных
