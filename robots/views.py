@@ -53,12 +53,6 @@ class CreateRobotView(View):
 
         return {'is_valid': True, 'serial': serial, 'model': model, 'version': version, 'created': created}
 
-    def robot_exists(self, serial):
-        """
-        Проверка наличия робота с заданным серийным номером.
-        """
-        return Robot.objects.filter(serial=serial).exists()
-
     def create_robot(self, serial, model, version, created):
         """
         Создание записи о роботе в базе данных.
