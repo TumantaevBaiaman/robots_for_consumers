@@ -13,7 +13,7 @@ from .models import Robot
 
 class CreateRobotView(View):
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         # Распаковываем JSON-данные из запроса
         robot_data = json.loads(request.body)
 
@@ -29,10 +29,6 @@ class CreateRobotView(View):
         model = validation_result['model']
         version = validation_result['version']
         created = validation_result['created']
-
-        # Проверка на уникальность серийного номера
-        if self.robot_exists(serial):
-            return JsonResponse({'error': 'Робот с таким серийным номером уже существует'}, status=400)
 
         # Создаем запись о роботе
         self.create_robot(serial, model, version, created)
