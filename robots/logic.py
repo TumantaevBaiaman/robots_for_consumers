@@ -1,9 +1,5 @@
-
 from django.core.mail import send_mail
 
-
-# Создайте функцию для отправки письма
-from customers.models import Customer
 from orders.models import Order
 
 
